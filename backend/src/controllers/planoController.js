@@ -1,8 +1,8 @@
-const { body } = require('express-validator');
+const { body, query } = require('express-validator');
 const { validate } = require('../middlewares/validate');
 const planoService = require('../services/planoService');
 const { TIPOS, ESTADOS } = require('../models/Plano');
-const { success, created } = require('../utils/apiResponse');
+const { success, created, badRequest } = require('../utils/apiResponse');
 
 const getByExpediente = async (req, res, next) => {
   try {
@@ -88,4 +88,41 @@ const remove = async (req, res, next) => {
   }
 };
 
-module.exports = { getByExpediente, getById, getDashboard, createValidation, create, updateValidation, update, assign, remove };
+const buscarExpediente = async (req, res, next) => {
+  try {
+    const { numero } = req.query;
+    if (!numero) return badRequest(res, 'Número de expediente requerido');
+    const result = await planoService.buscarExpediente(numero);
+    return success(res, result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const cargaInicialValidation = [
+  body('numeroExpediente')
+    .notEmpty()
+    .matches(/^\d{4}-[A-Z]\d?-\d+$/)
+    .withMessage('Formato inválido. Ej: 2024-E-12345, 2024-E1-12345, 2024-E2-12345'),
+  body('tipo').isIn(TIPOS).withMessage(`Tipo inválido. Valores: ${TIPOS.join(', ')}`),
+  body('padronNumero').notEmpty().withMessage('Número de padrón requerido'),
+  validate,
+];
+
+const cargaInicial = async (req, res, next) => {
+  try {
+    const files = req.files || (req.file ? [req.file] : []);
+    if (files.length === 0) return badRequest(res, 'Se requiere al menos un archivo PDF');
+    const { numeroExpediente, tipo, descripcion, padronNumero } = req.body;
+    const result = await planoService.cargaInicial(
+      { numeroExpediente, tipo, descripcion, padronNumero },
+      files,
+      req.user.id
+    );
+    return created(res, result, 'Plano cargado exitosamente');
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getByExpediente, getById, getDashboard, createValidation, create, updateValidation, update, assign, remove, buscarExpediente, cargaInicialValidation, cargaInicial };

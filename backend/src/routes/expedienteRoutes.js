@@ -12,4 +12,8 @@ router.post('/', authorize('ADMIN', 'TECNICO'), ctrl.createValidation, ctrl.crea
 router.put('/:id', authorize('ADMIN', 'TECNICO'), ctrl.update);
 router.delete('/:id', authorize('ADMIN'), ctrl.remove);
 
+// Gestión de accesos (solo ADMIN)
+router.post('/:id/authorize', authorize('ADMIN'), ctrl.authorizeValidation, ctrl.authorizeUser);
+router.delete('/:id/authorize/:userId', authorize('ADMIN'), ctrl.deauthorizeUser);
+
 module.exports = router;

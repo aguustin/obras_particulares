@@ -1,4 +1,7 @@
 const padronRepo = require('../repositories/padronRepository');
+const expedienteRepo = require('../repositories/expedienteRepository');
+const planoRepo = require('../repositories/planoRepository');
+const versionRepo = require('../repositories/versionPlanoRepository');
 
 const getAll = async (options) => {
   const [data, total] = await Promise.all([
@@ -28,9 +31,17 @@ const update = async (id, data) => {
 };
 
 const remove = async (id) => {
-  const padron = await padronRepo.remove(id);
+  const padron = await padronRepo.findById(id);
   if (!padron) throw { status: 404, message: 'Padrón no encontrado' };
-  return padron;
+  // Cascade: eliminar expedientes, planos y versiones del padrón
+  const expedientes = await expedienteRepo.findByPadron(id);
+  await Promise.all(expedientes.map(async (exp) => {
+    const planos = await planoRepo.findByExpediente(exp._id);
+    await Promise.all(planos.map((plano) => versionRepo.removeByPlano(plano._id)));
+    await planoRepo.removeByExpediente(exp._id);
+    await expedienteRepo.remove(exp._id);
+  }));
+  return padronRepo.remove(id);
 };
 
 module.exports = { getAll, getById, create, update, remove };

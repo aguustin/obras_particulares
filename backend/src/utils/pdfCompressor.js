@@ -8,12 +8,33 @@ const logger = require('./logger');
 
 const execAsync = promisify(exec);
 
+// null = no comprobado, true = disponible, false = no disponible
+let gsAvailable = null;
+
+const getGsCmd = () => (process.platform === 'win32' ? 'gswin64c' : 'gs');
+
+/** Verifica una sola vez si Ghostscript está disponible en el PATH. */
+const checkGhostscript = async () => {
+  if (gsAvailable !== null) return gsAvailable;
+  try {
+    await execAsync(`${getGsCmd()} --version`);
+    gsAvailable = true;
+    logger.info('Ghostscript disponible — compresión de PDF activada');
+  } catch {
+    gsAvailable = false;
+    logger.warn('Ghostscript no disponible — los PDFs se subirán sin comprimir');
+  }
+  return gsAvailable;
+};
+
 /**
- * Compress a PDF buffer using Ghostscript if available, otherwise return as-is.
- * @param {Buffer} inputBuffer
- * @returns {Promise<Buffer>}
+ * Comprime un PDF usando Ghostscript si está disponible, sino devuelve el buffer original.
+ * Solo avisa una vez al inicio; no spammea en cada upload.
  */
 const compressPdf = async (inputBuffer) => {
+  const available = await checkGhostscript();
+  if (!available) return inputBuffer;
+
   const tmpDir = os.tmpdir();
   const inputPath = path.join(tmpDir, `${uuidv4()}_input.pdf`);
   const outputPath = path.join(tmpDir, `${uuidv4()}_output.pdf`);
@@ -21,9 +42,8 @@ const compressPdf = async (inputBuffer) => {
   try {
     fs.writeFileSync(inputPath, inputBuffer);
 
-    const gsCmd = process.platform === 'win32' ? 'gswin64c' : 'gs';
     const cmd = [
-      gsCmd,
+      getGsCmd(),
       '-sDEVICE=pdfwrite',
       '-dCompatibilityLevel=1.4',
       '-dPDFSETTINGS=/ebook',
@@ -37,15 +57,13 @@ const compressPdf = async (inputBuffer) => {
     await execAsync(cmd);
     const compressed = fs.readFileSync(outputPath);
 
-    // Only use compressed if it's actually smaller
     if (compressed.length < inputBuffer.length) {
-      logger.debug(`PDF compressed: ${inputBuffer.length} -> ${compressed.length} bytes`);
+      logger.debug(`PDF comprimido: ${inputBuffer.length} → ${compressed.length} bytes`);
       return compressed;
     }
     return inputBuffer;
   } catch (err) {
-    // Ghostscript not available or failed — return original
-    logger.warn('PDF compression skipped (Ghostscript unavailable):', err.message);
+    logger.debug(`PDF compression failed (se usa original): ${err.message}`);
     return inputBuffer;
   } finally {
     [inputPath, outputPath].forEach((f) => {

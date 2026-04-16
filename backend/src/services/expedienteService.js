@@ -1,5 +1,7 @@
 const expedienteRepo = require('../repositories/expedienteRepository');
 const padronRepo = require('../repositories/padronRepository');
+const planoRepo = require('../repositories/planoRepository');
+const versionRepo = require('../repositories/versionPlanoRepository');
 
 const getAll = async (options) => {
   const [data, total] = await Promise.all([
@@ -39,9 +41,27 @@ const update = async (id, data) => {
 };
 
 const remove = async (id) => {
-  const exp = await expedienteRepo.remove(id);
+  const exp = await expedienteRepo.findById(id);
+  if (!exp) throw { status: 404, message: 'Expediente no encontrado' };
+  // Cascade: eliminar todas las versiones y planos del expediente
+  const planos = await planoRepo.findByExpediente(id);
+  await Promise.all(planos.map(async (plano) => {
+    await versionRepo.removeByPlano(plano._id);
+  }));
+  await planoRepo.removeByExpediente(id);
+  return expedienteRepo.remove(id);
+};
+
+const authorizeUser = async (expedienteId, userId) => {
+  const exp = await expedienteRepo.authorizeUser(expedienteId, userId);
   if (!exp) throw { status: 404, message: 'Expediente no encontrado' };
   return exp;
 };
 
-module.exports = { getAll, getByPadron, getById, create, update, remove };
+const deauthorizeUser = async (expedienteId, userId) => {
+  const exp = await expedienteRepo.deauthorizeUser(expedienteId, userId);
+  if (!exp) throw { status: 404, message: 'Expediente no encontrado' };
+  return exp;
+};
+
+module.exports = { getAll, getByPadron, getById, create, update, remove, authorizeUser, deauthorizeUser };

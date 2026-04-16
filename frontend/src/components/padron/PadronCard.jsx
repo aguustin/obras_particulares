@@ -1,12 +1,31 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import ExpedienteCard from '../expediente/ExpedienteCard';
+import ConfirmDeleteModal from '../common/ConfirmDeleteModal';
+import { deletePadron } from '../../services/padronService';
 
-export default function PadronCard({ padron, expedientes = [], onPlanoClick, selectedPlanoId }) {
+export default function PadronCard({ padron, expedientes = [], onPlanoClick, selectedPlanoId, onDelete }) {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const [expanded, setExpanded] = useState(true);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const totalPlanos = expedientes.reduce((sum, e) => sum + (e.planos?.length || 0), 0);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deletePadron(padron._id);
+      setDeleteOpen(false);
+      if (onDelete) onDelete(padron._id);
+    } catch (e) {
+      alert(e.response?.data?.message || 'Error al eliminar el padrón');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div
@@ -82,6 +101,21 @@ export default function PadronCard({ padron, expedientes = [], onPlanoClick, sel
           </span>
         </div>
 
+        {user?.rol === 'ADMIN' && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}
+            title="Eliminar padrón"
+            style={{
+              padding: '5px 10px', borderRadius: '7px',
+              background: theme.accentLight, border: theme.accent,
+              color: '#dc2626', fontSize: '13px', fontWeight: 700,
+              cursor: 'pointer', flexShrink: 0, lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
+        )}
+
         <span style={{ color: theme.textMuted, fontSize: '14px', marginLeft: '4px' }}>
           {expanded ? '▲' : '▼'}
         </span>
@@ -102,11 +136,28 @@ export default function PadronCard({ padron, expedientes = [], onPlanoClick, sel
                 planos={exp.planos || []}
                 onPlanoClick={onPlanoClick}
                 selectedPlanoId={selectedPlanoId}
+                onDelete={() => { if (onDelete) onDelete(padron._id); }}
               />
             ))
           )}
         </div>
       )}
+      <ConfirmDeleteModal
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={handleDelete}
+        loading={deleting}
+        title="Eliminar padrón"
+        description={
+          <>
+            Se eliminará el padrón <strong>#{padron.numero}</strong> junto con
+            todos sus <strong>{expedientes.length} expediente{expedientes.length !== 1 ? 's' : ''}</strong>,{' '}
+            <strong>{totalPlanos} plano{totalPlanos !== 1 ? 's' : ''}</strong> y sus versiones asociadas.
+          </>
+        }
+        confirmValue={padron.numero}
+        confirmLabel="Escribí el número de padrón para confirmar"
+      />
     </div>
   );
 }

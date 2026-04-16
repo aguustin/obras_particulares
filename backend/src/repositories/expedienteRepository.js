@@ -1,6 +1,9 @@
 const Expediente = require('../models/Expediente');
 
-const findById = (id) => Expediente.findById(id).populate('padronId');
+const findById = (id) =>
+  Expediente.findById(id)
+    .populate('padronId')
+    .populate('usuarios_autorizados', 'nombre email rol activo');
 const findByNumero = (numero) => Expediente.findOne({ numero }).populate('padronId');
 const findByPadron = (padronId) => Expediente.find({ padronId, activo: true }).sort({ createdAt: -1 });
 const findAll = (filter = {}, options = {}) => {
@@ -20,4 +23,22 @@ const create = (data) => Expediente.create(data);
 const update = (id, data) => Expediente.findByIdAndUpdate(id, data, { new: true, runValidators: true });
 const remove = (id) => Expediente.findByIdAndUpdate(id, { activo: false }, { new: true });
 
-module.exports = { findById, findByNumero, findByPadron, findAll, count, create, update, remove };
+const authorizeUser = (id, userId) =>
+  Expediente.findByIdAndUpdate(
+    id,
+    { $addToSet: { usuarios_autorizados: userId } },
+    { new: true }
+  )
+    .populate('padronId')
+    .populate('usuarios_autorizados', 'nombre email rol activo');
+
+const deauthorizeUser = (id, userId) =>
+  Expediente.findByIdAndUpdate(
+    id,
+    { $pull: { usuarios_autorizados: userId } },
+    { new: true }
+  )
+    .populate('padronId')
+    .populate('usuarios_autorizados', 'nombre email rol activo');
+
+module.exports = { findById, findByNumero, findByPadron, findAll, count, create, update, remove, authorizeUser, deauthorizeUser };

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFilters } from '../../contexts/FilterContext';
 import { useDebounce } from '../../hooks/useDebounce';
+import { downloadBackup } from '../../services/adminService';
 
 const FILTER_GROUPS = [
   {
@@ -94,10 +96,11 @@ function FilterGroup({ group, active, pendiente, onSelect, theme }) {
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
-          padding: '10px 12px',
+          padding: '9px 12px',
           color: theme.sidebarText,
-          fontSize: '14px',
+          fontSize: '13.5px',
           fontWeight: isActive ? 600 : 400,
+          letterSpacing: '-0.01em',
           background: 'none',
           border: 'none',
           cursor: 'pointer',
@@ -132,7 +135,26 @@ export default function Sidebar() {
   const { theme, isDark, toggle } = useTheme();
   const { user, logout } = useAuth();
   const { filters, setEstado, setSearch, setSearchBy, reset } = useFilters();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isAdminPanel = location.pathname.startsWith('/admin');
   const [searchInput, setSearchInput] = useState('');
+  const [backupConfirmOpen, setBackupConfirmOpen] = useState(false);
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupError, setBackupError] = useState('');
+
+  const handleBackupConfirm = async () => {
+    setBackupLoading(true);
+    setBackupError('');
+    try {
+      await downloadBackup();
+      setBackupConfirmOpen(false);
+    } catch {
+      setBackupError('No se pudo generar el backup. Intentá de nuevo.');
+    } finally {
+      setBackupLoading(false);
+    }
+  };
 
   const handleSearchChange = (e) => {
     const val = e.target.value;
@@ -163,13 +185,13 @@ export default function Sidebar() {
       }}
     >
       {/* Header */}
-      <div style={{ padding: '24px 20px 16px', borderBottom: `1px solid ${theme.sidebarBorder}` }}>
+      <div style={{ padding: '22px 20px 14px', borderBottom: `1px solid ${theme.sidebarBorder}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: theme.sidebarText, lineHeight: 1.2 }}>
+            <div style={{ fontSize: '17px', fontWeight: 800, color: theme.sidebarText, lineHeight: 1.2, letterSpacing: '-0.03em' }}>
               Godoy Cruz
             </div>
-            <div style={{ fontSize: '12px', color: theme.sidebarSubtext, marginTop: '2px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 500, color: theme.sidebarSubtext, marginTop: '3px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
               Obras Particulares
             </div>
           </div>
@@ -189,7 +211,7 @@ export default function Sidebar() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '16px',
+              fontSize: '15px',
               flexShrink: 0,
             }}
           >
@@ -234,11 +256,12 @@ export default function Sidebar() {
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
+              letterSpacing: '-0.01em',
             }}
           >
             {user?.nombre}
           </div>
-          <div style={{ fontSize: '11px', color: theme.sidebarSubtext }}>
+          <div style={{ fontSize: '11px', fontWeight: 500, color: theme.sidebarSubtext, letterSpacing: '0.02em' }}>
             {user?.rol}
           </div>
         </div>
@@ -246,7 +269,7 @@ export default function Sidebar() {
 
       {/* Filters */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 12px 0' }}>
-        <div style={{ fontSize: '11px', fontWeight: 600, color: theme.sidebarSubtext, letterSpacing: '0.08em', padding: '0 8px 8px', textTransform: 'uppercase' }}>
+        <div style={{ fontSize: '10px', fontWeight: 700, color: theme.sidebarSubtext, letterSpacing: '0.1em', padding: '0 8px 8px', textTransform: 'uppercase' }}>
           Filtros
         </div>
 
@@ -259,10 +282,11 @@ export default function Sidebar() {
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              padding: '10px 12px',
+              padding: '9px 12px',
               color: theme.sidebarText,
-              fontSize: '14px',
+              fontSize: '13.5px',
               fontWeight: !filters.estado ? 600 : 400,
+              letterSpacing: '-0.01em',
               background: !filters.estado ? theme.sidebarActiveFilter : 'none',
               border: 'none',
               cursor: 'pointer',
@@ -290,7 +314,7 @@ export default function Sidebar() {
 
         {/* Search */}
         <div style={{ padding: '0 0 12px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 600, color: theme.sidebarSubtext, letterSpacing: '0.08em', padding: '0 8px 8px', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: theme.sidebarSubtext, letterSpacing: '0.1em', padding: '0 8px 8px', textTransform: 'uppercase' }}>
             Búsqueda
           </div>
 
@@ -333,19 +357,76 @@ export default function Sidebar() {
         </div>
       </div>
 
+      {/* Admin actions */}
+      {user?.rol === 'ADMIN' && (
+        <div style={{ padding: '8px 16px 0', borderTop: `1px solid ${theme.sidebarBorder}`, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {/* Gestión de técnicos */}
+          <button
+            onClick={() => isAdminPanel ? navigate('/') : navigate('/admin/tecnicos')}
+            style={{
+              width: '100%',
+              padding: '9px',
+              borderRadius: '8px',
+              background: isAdminPanel ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.07)',
+              color: theme.sidebarText,
+              border: `1px solid ${theme.sidebarBorder}`,
+              fontSize: '12.5px',
+              fontWeight: 500,
+              letterSpacing: '0.01em',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.14)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = isAdminPanel ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.07)')}
+          >
+            <span>👷</span> {isAdminPanel ? 'Volver al dashboard' : 'Gestión de técnicos'}
+          </button>
+
+          <button
+            onClick={() => { setBackupError(''); setBackupConfirmOpen(true); }}
+            style={{
+              width: '100%',
+              padding: '9px',
+              borderRadius: '8px',
+              background: 'rgba(255,255,255,0.07)',
+              color: theme.sidebarText,
+              border: `1px solid ${theme.sidebarBorder}`,
+              fontSize: '12.5px',
+              fontWeight: 500,
+              letterSpacing: '0.01em',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.14)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+          >
+            <span>💾</span> Backup base de datos
+          </button>
+        </div>
+      )}
+
       {/* Logout */}
-      <div style={{ padding: '12px 16px', borderTop: `1px solid ${theme.sidebarBorder}` }}>
+      <div style={{ padding: '12px 16px', borderTop: user?.rol === 'ADMIN' ? 'none' : `1px solid ${theme.sidebarBorder}`, paddingTop: user?.rol === 'ADMIN' ? '8px' : '12px' }}>
         <button
           onClick={logout}
           style={{
             width: '100%',
-            padding: '10px',
+            padding: '9px',
             borderRadius: '8px',
-            background: 'rgba(255,255,255,0.12)',
+            background: 'rgba(255,255,255,0.07)',
             color: theme.sidebarText,
             border: `1px solid ${theme.sidebarBorder}`,
-            fontSize: '13px',
+            fontSize: '12.5px',
             fontWeight: 500,
+            letterSpacing: '0.01em',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -353,12 +434,146 @@ export default function Sidebar() {
             gap: '8px',
             transition: 'background 0.2s',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.14)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
         >
           <span>🚪</span> Cerrar sesión
         </button>
       </div>
+      {/* Modal de confirmación de backup */}
+      {backupConfirmOpen && (
+        <div
+          onClick={() => !backupLoading && setBackupConfirmOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000,
+            padding: '16px',
+            backdropFilter: 'blur(2px)',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: theme.contentBg,
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '420px',
+              padding: '28px 28px 24px',
+              boxShadow: theme.shadowLg,
+              border: `1px solid ${theme.border}`,
+            }}
+          >
+            {/* Ícono */}
+            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+              <span style={{ fontSize: '42px' }}>💾</span>
+            </div>
+
+            {/* Título */}
+            <h2
+              style={{
+                fontSize: '18px',
+                fontWeight: 700,
+                color: theme.text,
+                margin: '0 0 10px',
+                textAlign: 'center',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              Crear copia de seguridad
+            </h2>
+
+            {/* Descripción */}
+            <p
+              style={{
+                fontSize: '13.5px',
+                color: theme.textSecondary,
+                lineHeight: 1.65,
+                margin: '0 0 8px',
+                textAlign: 'center',
+              }}
+            >
+              Se va a generar y descargar un archivo <strong style={{ color: theme.text }}>JSON</strong> con
+              toda la información de la base de datos: usuarios, padrón, expedientes, planos y versiones.
+            </p>
+            <p
+              style={{
+                fontSize: '12.5px',
+                color: theme.textMuted,
+                lineHeight: 1.55,
+                margin: '0 0 22px',
+                textAlign: 'center',
+              }}
+            >
+              Guardá el archivo en un lugar seguro. Puede usarse para restaurar datos en caso de falla.
+            </p>
+
+            {/* Error */}
+            {backupError && (
+              <div
+                style={{
+                  padding: '10px 13px',
+                  borderRadius: '8px',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#dc2626',
+                  fontSize: '13px',
+                  marginBottom: '16px',
+                  textAlign: 'center',
+                }}
+              >
+                {backupError}
+              </div>
+            )}
+
+            {/* Botones */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setBackupConfirmOpen(false)}
+                disabled={backupLoading}
+                style={{
+                  flex: 1,
+                  padding: '11px',
+                  borderRadius: '9px',
+                  background: theme.mainBg,
+                  color: theme.textSecondary,
+                  border: `1px solid ${theme.border}`,
+                  fontSize: '13.5px',
+                  fontWeight: 500,
+                  cursor: backupLoading ? 'not-allowed' : 'pointer',
+                  opacity: backupLoading ? 0.6 : 1,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleBackupConfirm}
+                disabled={backupLoading}
+                style={{
+                  flex: 1,
+                  padding: '11px',
+                  borderRadius: '9px',
+                  background: backupLoading
+                    ? theme.textMuted
+                    : 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                  color: '#fff',
+                  border: 'none',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  cursor: backupLoading ? 'not-allowed' : 'pointer',
+                  opacity: backupLoading ? 0.7 : 1,
+                }}
+              >
+                {backupLoading ? 'Generando...' : 'Descargar backup'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

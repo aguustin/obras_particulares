@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useFilters } from '../contexts/FilterContext';
 import { useDebounce } from '../hooks/useDebounce';
 import Layout from '../components/layout/Layout';
 import PadronCard from '../components/padron/PadronCard';
 import PlanoDetail from '../components/plano/PlanoDetail';
+import NuevaCargaModal from '../components/plano/NuevaCargaModal';
 import Spinner from '../components/common/Spinner';
+import Button from '../components/common/Button';
 import { getDashboard } from '../services/planoService';
 
 const PAGE_SIZE = 15;
 
 export default function Dashboard() {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const { filters } = useFilters();
   const debouncedSearch = useDebounce(filters.search, 400);
 
@@ -23,6 +27,7 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [selectedPlano, setSelectedPlano] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [nuevaCargaOpen, setNuevaCargaOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -54,13 +59,26 @@ export default function Dashboard() {
     fetchData();
   }, [fetchData]);
 
-  const handlePlanoClick = (plano) => {
-    setSelectedPlano((prev) => (prev?._id === plano._id ? null : plano));
+  const handlePlanoClick = (plano, expedienteUsuariosAutorizados) => {
+    setSelectedPlano((prev) =>
+      prev?._id === plano._id
+        ? null
+        : { ...plano, _usuariosAutorizados: expedienteUsuariosAutorizados || [] }
+    );
   };
 
   const handlePlanoUpdate = () => {
     setRefreshKey((k) => k + 1);
-    // Re-fetch the selected plano state via refresh
+  };
+
+  const handlePlanoDelete = () => {
+    setSelectedPlano(null);
+    setRefreshKey((k) => k + 1);
+  };
+
+  const handlePadronDelete = () => {
+    setSelectedPlano(null);
+    setRefreshKey((k) => k + 1);
   };
 
   const filterLabel = () => {
@@ -90,15 +108,29 @@ export default function Dashboard() {
           }}
         >
           {/* Page header */}
-          <div style={{ marginBottom: '20px' }}>
-            <h1 style={{ fontSize: '22px', fontWeight: 700, color: theme.text }}>
-              {filterLabel()}
-            </h1>
-            <p style={{ fontSize: '13px', color: theme.textSecondary, marginTop: '4px' }}>
-              {loading ? 'Cargando...' : `${total} resultado${total !== 1 ? 's' : ''}`}
-              {filters.search && ` · Búsqueda: "${filters.search}"`}
-            </p>
+          <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+            <div>
+              <h1 style={{ fontSize: '22px', fontWeight: 700, color: theme.text }}>
+                {filterLabel()}
+              </h1>
+              <p style={{ fontSize: '13px', color: theme.textSecondary, marginTop: '4px' }}>
+                {loading ? 'Cargando...' : `${total} resultado${total !== 1 ? 's' : ''}`}
+                {filters.search && ` · Búsqueda: "${filters.search}"`}
+              </p>
+            </div>
+
+            {user?.rol === 'PROFESIONAL' && (
+              <Button onClick={() => setNuevaCargaOpen(true)} size="sm">
+                + Nueva carga
+              </Button>
+            )}
           </div>
+
+          <NuevaCargaModal
+            isOpen={nuevaCargaOpen}
+            onClose={() => setNuevaCargaOpen(false)}
+            onSuccess={() => setRefreshKey((k) => k + 1)}
+          />
 
           {/* Error */}
           {error && (
@@ -153,6 +185,7 @@ export default function Dashboard() {
                   expedientes={padron.expedientes || []}
                   onPlanoClick={handlePlanoClick}
                   selectedPlanoId={selectedPlano?._id}
+                  onDelete={handlePadronDelete}
                 />
               ))}
             </div>
@@ -243,6 +276,7 @@ export default function Dashboard() {
               plano={selectedPlano}
               onClose={() => setSelectedPlano(null)}
               onUpdate={handlePlanoUpdate}
+              onDelete={handlePlanoDelete}
             />
           </div>
         )}

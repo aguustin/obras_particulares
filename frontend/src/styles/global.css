@@ -5,31 +5,54 @@
 }
 
 :root {
-  font-size: 16px;
+  font-size: 15px;
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  font-variant-numeric: tabular-nums;
 }
 
 body {
   min-height: 100vh;
   overflow-x: hidden;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+/* Paragraphs and labels */
+p, label, span {
+  line-height: 1.55;
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.4); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.7); }
+::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.55); }
 
 /* Remove default button styles */
-button { cursor: pointer; border: none; background: none; font-family: inherit; }
-input, select, textarea { font-family: inherit; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; font-feature-settings: inherit; }
+input, select, textarea { font-family: inherit; font-feature-settings: inherit; }
 
 /* Transitions */
-* { transition: background-color 0.2s ease, border-color 0.2s ease; }
+* { transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease; }
 
 /* Focus ring */
 *:focus-visible {
   outline: 2px solid #7c3aed;
   outline-offset: 2px;
+}
+
+/* Numeric data looks better tabular */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }

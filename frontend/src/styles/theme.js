@@ -43,32 +43,32 @@ export const lightTheme = {
 };
 
 export const darkTheme = {
-  // Sidebar
-  sidebarBg: '#3b0764',
-  sidebarBgHover: '#4c1d95',
-  sidebarText: '#f3f4f6',
-  sidebarSubtext: 'rgba(243,244,246,0.7)',
-  sidebarBorder: 'rgba(255,255,255,0.1)',
-  sidebarInputBg: 'rgba(255,255,255,0.08)',
-  sidebarInputText: '#f3f4f6',
-  sidebarButtonBg: 'rgba(255,255,255,0.1)',
-  sidebarActiveFilter: 'rgba(255,255,255,0.15)',
+  // Sidebar — gris carbón oscuro con acentos violeta
+  sidebarBg: '#111827',
+  sidebarBgHover: '#1f2937',
+  sidebarText: '#f9fafb',
+  sidebarSubtext: 'rgba(156,163,175,0.95)',
+  sidebarBorder: 'rgba(55,65,81,0.8)',
+  sidebarInputBg: 'rgba(31,41,55,0.9)',
+  sidebarInputText: '#f9fafb',
+  sidebarButtonBg: 'rgba(55,65,81,0.6)',
+  sidebarActiveFilter: 'rgba(124,58,237,0.25)',
 
   // Main content
-  mainBg: '#0f0f1a',
-  contentBg: '#1a1a2e',
+  mainBg: '#0f1117',
+  contentBg: '#1c1f26',
   text: '#f3f4f6',
   textSecondary: '#9ca3af',
   textMuted: '#6b7280',
-  border: '#2d2d44',
+  border: '#2a2d36',
   borderHover: '#7c3aed',
   shadow: '0 1px 3px rgba(0,0,0,0.4)',
   shadowMd: '0 4px 6px -1px rgba(0,0,0,0.4)',
   shadowLg: '0 10px 15px -3px rgba(0,0,0,0.5)',
 
   // Interactive
-  inputBg: '#16213e',
-  inputBorder: '#2d2d44',
+  inputBg: '#161920',
+  inputBorder: '#2a2d36',
   inputFocus: '#7c3aed',
   buttonPrimary: '#7c3aed',
   buttonPrimaryHover: '#6d28d9',

@@ -52,9 +52,18 @@ const initBucket = async () => {
         logger.error(`MinIO bucket create error: [${createErr.name}] ${createErr.message} (HTTP ${createErr.$metadata?.httpStatusCode})`);
       }
     } else {
-      logger.error(
-        `MinIO bucket init error: [${err.name}] ${err.message ?? '(no message)'} (HTTP ${err.$metadata?.httpStatusCode ?? 'N/A'}) — endpoint: ${endpoint}`
-      );
+      const isConnectionError =
+        err.name === 'AggregateError' ||
+        err.code === 'ECONNREFUSED' ||
+        err.errors?.some?.((e) => e.code === 'ECONNREFUSED');
+
+      if (isConnectionError) {
+        logger.warn(`MinIO no disponible en ${endpoint} — iniciá MinIO para habilitar la subida de archivos`);
+      } else {
+        logger.error(
+          `MinIO bucket init error: [${err.name}] ${err.message || '(sin mensaje)'} (HTTP ${err.$metadata?.httpStatusCode ?? 'N/A'})`
+        );
+      }
     }
   }
 };

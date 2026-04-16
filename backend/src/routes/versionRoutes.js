@@ -10,10 +10,10 @@ router.get('/plano/:planoId', ctrl.getByPlano);
 router.get('/:id', ctrl.getById);
 router.get('/:id/download', ctrl.getDownloadUrl);
 
-// Upload new version (PROFESIONAL, TECNICO, ADMIN)
+// Upload new version (PROFESIONAL, TECNICO, ADMIN) — acepta hasta 10 PDFs
 router.post(
   '/plano/:planoId',
-  upload.single('pdf'),
+  upload.array('pdf', 10),
   handleMulterError,
   ctrl.upload
 );
@@ -26,6 +26,22 @@ router.post(
   handleMulterError,
   ctrl.observacionValidation,
   ctrl.addObservacion
+);
+
+// Edit version description (PROFESIONAL, ADMIN) — only while editable
+router.patch(
+  '/:id',
+  authorize('ADMIN', 'PROFESIONAL'),
+  ctrl.updateDescripcion
+);
+
+// Replace version files (PROFESIONAL, ADMIN) — only while editable
+router.patch(
+  '/:id/archivos',
+  authorize('ADMIN', 'PROFESIONAL'),
+  upload.array('pdf', 10),
+  handleMulterError,
+  ctrl.updateArchivos
 );
 
 // Add comentario (all roles)

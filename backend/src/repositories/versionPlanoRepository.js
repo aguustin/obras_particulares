@@ -42,6 +42,8 @@ const setObservacion = (id, observacion) =>
     { new: true }
   );
 
+const removeByPlano = (planoId) => VersionPlano.deleteMany({ planoId });
+
 module.exports = {
   findById,
   findByPlano,
@@ -51,4 +53,5 @@ module.exports = {
   update,
   addComentario,
   setObservacion,
+  removeByPlano,
 };

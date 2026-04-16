@@ -99,7 +99,7 @@ const aggregateByEstado = async ({ estado, pendiente, tecnicoId, page = 1, limit
 };
 
 // Aggregate padrones with their expedientes and planos, filtered
-const aggregateDashboard = async ({ estado, pendiente, search, searchBy, tecnicoId, page = 1, limit = 20 }) => {
+const aggregateDashboard = async ({ estado, pendiente, search, searchBy, tiposPermitidos, profesionalId, page = 1, limit = 20 }) => {
   const planoMatch = {};
 
   if (estado === 'OBSERVADOS') {
@@ -114,8 +114,12 @@ const aggregateDashboard = async ({ estado, pendiente, search, searchBy, tecnico
     planoMatch.pendiente = pendiente;
   }
 
-  if (tecnicoId) {
-    planoMatch.tecnicos_asignados = new mongoose.Types.ObjectId(tecnicoId);
+  if (tiposPermitidos && tiposPermitidos.length > 0) {
+    planoMatch.tipo = { $in: tiposPermitidos };
+  }
+
+  if (profesionalId) {
+    planoMatch.profesionales_asignados = new mongoose.Types.ObjectId(profesionalId);
   }
 
   const padronMatch = { activo: true };
@@ -193,6 +197,8 @@ const aggregateDashboard = async ({ estado, pendiente, search, searchBy, tecnico
   };
 };
 
+const removeByExpediente = (expedienteId) => Plano.deleteMany({ expedienteId });
+
 module.exports = {
   findById,
   findByExpediente,
@@ -201,6 +207,7 @@ module.exports = {
   create,
   update,
   remove,
+  removeByExpediente,
   aggregateByEstado,
   aggregateDashboard,
 };

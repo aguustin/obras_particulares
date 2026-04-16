@@ -4,6 +4,7 @@ const logger = require('../utils/logger');
 
 const connect = async () => {
   try {
+    console.log(MONGO_URI)
     await mongoose.connect(MONGO_URI, {
       serverSelectionTimeoutMS: 5000,
     });
